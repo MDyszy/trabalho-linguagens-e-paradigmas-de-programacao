@@ -120,3 +120,97 @@ def test_alertas_estoque_baixo(client):
     
     assert len(alertas) == 1
     assert alertas[0]["nome"] == "Café 500g"
+
+def test_frontend_dashboard_e_assets(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "DataStock" in response.text
+
+    app_js = client.get("/static/app.js")
+    assert app_js.status_code == 200
+    assert "fetchProducts" in app_js.text
+
+    style_css = client.get("/static/style.css")
+    assert style_css.status_code == 200
+    assert "app-container" in style_css.text
+
+def test_buscar_categoria_inexistente_retorna_404(client):
+    response = client.get("/categorias/999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Categoria não encontrada"
+
+def test_historico_produto_inexistente_retorna_404(client):
+    response = client.get("/produtos/999/movimentacoes")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Produto não encontrado"
+
+def test_criar_produto_com_estoque_minimo_zero_retorna_422(client):
+    response = client.post(
+        "/produtos/",
+        json={"nome": "Produto Inválido", "categoria_nome": "Teste", "quantidade": 0, "estoque_minimo": 0}
+    )
+    assert response.status_code == 422
+
+def test_fluxo_ponta_a_ponta_produto_movimentacoes_alerta_e_exports(client):
+    resp_prod = client.post(
+        "/produtos/",
+        json={"nome": "Produto E2E", "categoria_nome": "Fluxo", "quantidade": 7, "estoque_minimo": 7}
+    )
+    assert resp_prod.status_code == 200
+    produto = resp_prod.json()
+    produto_id = produto["id"]
+    assert produto["quantidade"] == 7
+
+    categorias = client.get("/categorias/")
+    assert categorias.status_code == 200
+    assert any(c["nome"] == "Fluxo" for c in categorias.json())
+
+    resp_entrada = client.post(
+        f"/produtos/{produto_id}/movimentacoes",
+        json={"tipo": "entrada", "quantidade": 3}
+    )
+    assert resp_entrada.status_code == 200
+
+    resp_saida = client.post(
+        f"/produtos/{produto_id}/movimentacoes",
+        json={"tipo": "saida", "quantidade": 4}
+    )
+    assert resp_saida.status_code == 200
+
+    resp_prod_after = client.get(f"/produtos/{produto_id}")
+    assert resp_prod_after.status_code == 200
+    assert resp_prod_after.json()["quantidade"] == 6
+
+    resp_historico = client.get(f"/produtos/{produto_id}/movimentacoes")
+    assert resp_historico.status_code == 200
+    historico = resp_historico.json()
+    assert [m["tipo"] for m in historico] == ["entrada", "entrada", "saida"]
+
+    resp_alertas = client.get("/produtos/alertas")
+    assert resp_alertas.status_code == 200
+    assert any(p["id"] == produto_id for p in resp_alertas.json())
+
+    resp_inventario = client.get("/produtos/exportar/inventario")
+    assert resp_inventario.status_code == 200
+    assert "text/csv" in resp_inventario.headers["content-type"]
+    assert "Produto E2E" in resp_inventario.text
+
+    resp_export_mov = client.get(f"/produtos/{produto_id}/exportar/movimentacoes")
+    assert resp_export_mov.status_code == 200
+    assert "text/csv" in resp_export_mov.headers["content-type"]
+    assert "ENTRADA" in resp_export_mov.text
+    assert "SAIDA" in resp_export_mov.text
+
+def test_seed_popula_banco_e_e_idempotente(client):
+    response = client.post("/produtos/seed")
+    assert response.status_code == 200
+    assert "Seed completo" in response.json()["message"]
+
+    produtos = client.get("/produtos/")
+    assert produtos.status_code == 200
+    assert len(produtos.json()) == 6
+
+    segunda_execucao = client.post("/produtos/seed")
+    assert segunda_execucao.status_code == 200
+    assert "Seed abortado" in segunda_execucao.json()["message"]

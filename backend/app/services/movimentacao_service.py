@@ -29,4 +29,7 @@ class MovimentacaoService:
         return movimentacao_repo.create(db, produto_id, data.tipo.value, data.quantidade)
 
     def get_historico(self, db: Session, produto_id: int):
+        produto = produto_repo.get_by_id(db, produto_id)
+        if not produto:
+            raise HTTPException(status_code=404, detail="Produto não encontrado")
         return movimentacao_repo.get_by_produto(db, produto_id)

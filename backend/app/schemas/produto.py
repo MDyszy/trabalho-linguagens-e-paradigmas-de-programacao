@@ -5,7 +5,7 @@ class ProdutoCreate(BaseModel):
     nome: str = Field(..., min_length=1, max_length=100)
     categoria_nome: str = Field(..., min_length=1, max_length=100)
     quantidade: int = Field(default=0, ge=0)          # estoque inicial -> vira a 1ª movimentação de entrada
-    estoque_minimo: int = Field(..., ge=0)
+    estoque_minimo: int = Field(..., ge=1)
     imagem_url: str | None = Field(default=None, max_length=500)
 
 # Read -> O que a API retorna

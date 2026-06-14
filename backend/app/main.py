@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -42,7 +42,10 @@ app.include_router(movimentacao_router.router)
 def read_index():
     static_file_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
     if not os.path.exists(static_file_path):
-        return {"message": "Interface Web não inicializada. Crie o index.html na pasta static."}
+        raise HTTPException(
+            status_code=404,
+            detail="Interface Web não inicializada. Crie o index.html na pasta static.",
+        )
     return FileResponse(static_file_path)
 
 # Monta o diretório de arquivos estáticos (/static/style.css, /static/app.js)

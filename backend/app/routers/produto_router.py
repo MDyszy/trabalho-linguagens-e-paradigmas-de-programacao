@@ -9,11 +9,21 @@ service = ProdutoService()
 
 @router.get("/", response_model=list[ProdutoResponse])
 def listar(db: Session = Depends(get_db)):
-    return service.get_all(db)
+    try:
+        return service.get_all(db)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Erro ao listar produtos") from exc
 
 @router.get("/alertas", response_model=list[ProdutoResponse])
 def alertas(db: Session = Depends(get_db)):
-    return service.get_alertas(db)
+    try:
+        return service.get_alertas(db)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Erro ao listar alertas de estoque") from exc
 
 @router.get("/{id}", response_model=ProdutoResponse)
 def buscar(id: int, db: Session = Depends(get_db)):
@@ -24,15 +34,33 @@ def buscar(id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=ProdutoResponse)
 def criar(data: ProdutoCreate, db: Session = Depends(get_db)):
-    return service.create(db, data)
+    try:
+        return service.create(db, data)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao criar produto") from exc
 
 @router.post("/seed")
 def seed_dados(db: Session = Depends(get_db)):
-    return service.seed(db)
+    try:
+        return service.seed(db)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao popular banco de dados") from exc
 
 @router.get("/exportar/inventario")
 def exportar_inventario(db: Session = Depends(get_db)):
-    csv_content = service.export_inventory_csv(db)
+    try:
+        csv_content = service.export_inventory_csv(db)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Erro ao exportar inventário") from exc
+
     return Response(
         content=csv_content,
         media_type="text/csv",
