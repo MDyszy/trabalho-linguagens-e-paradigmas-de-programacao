@@ -9,7 +9,7 @@ class Movimentacao(Base):
 
     # Eventos imutáveis: a tabela é append-only (só INSERT e leitura).
     id = Column(Integer, primary_key=True, index=True)
-    produto_id = Column(Integer, ForeignKey("produto.id"), nullable=False)
+    produto_id = Column(Integer, ForeignKey("produto.id"), nullable=False, index=True)
     tipo = Column(String, nullable=False)        # "entrada" ou "saida"
     quantidade = Column(Integer, nullable=False)
     data = Column(DateTime, default=datetime.utcnow, nullable=False)
