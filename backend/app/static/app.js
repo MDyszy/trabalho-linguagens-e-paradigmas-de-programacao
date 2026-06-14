@@ -18,6 +18,7 @@ function escapeHtml(str) {
 let state = {
     products: [],
     categories: [],
+    totalMovements: 0,
     selectedProductId: null,
     filterText: "",
     filterCategory: "",
@@ -144,6 +145,21 @@ async function fetchProductMovements(productId) {
     }
 }
 
+// Total real de movimentações: somatório do histórico de cada produto.
+// O GET /produtos/ não traz as movimentações, então buscamos em paralelo.
+async function fetchTotalMovements() {
+    try {
+        const historicos = await Promise.all(
+            state.products.map((p) => fetchProductMovements(p.id))
+        );
+        state.totalMovements = historicos.reduce((total, lista) => total + lista.length, 0);
+    } catch (error) {
+        console.error("Erro ao calcular total de movimentações", error);
+        state.totalMovements = 0;
+    }
+    return state.totalMovements;
+}
+
 // ==========================================================================
 // RENDER & UI UPDATES
 // ==========================================================================
@@ -163,23 +179,8 @@ function updateKPIs() {
     // 3. Categories count
     elements.kpiTotalCategories.textContent = state.categories.length;
     
-    // 4. Movements count (aggregate)
-    let totalMovements = 0;
-    // We can count movements dynamically by summing movements of all products
-    // Wait, the API doesn't return movements list in GET /produtos/, but let's query all products
-    // Alternatively, we sum up if we fetch detailed data, or since they are not in the main response,
-    // we can simulate this or show a simple counter. Let's make an estimation or aggregate.
-    // Wait! Can we get it by doing a quick calc or leaving a representative metric?
-    // Let's call /produtos/ to see if we can calculate it. The API doesn't return movements inside GET /produtos/.
-    // Let's calculate total movements by asking the backend if there is a general route,
-    // but there isn't! We can show total movements as the sum of a mock count or update it as we query.
-    // Actually, let's keep it updated dynamically based on products loaded if they had movements,
-    // or just show a nice default like total products + sum of entries.
-    // Let's query products. Since we don't have total movements endpoint, let's just make it count how many we can read,
-    // or we can add a small counting in the backend later. Let's keep it simple: we can estimate it or just calculate it
-    // from products (since each product has a starting stock, that's at least 1 movement per product with qty > 0).
-    const productsWithStock = state.products.filter(p => p.quantidade > 0).length;
-    elements.kpiTotalMovements.textContent = productsWithStock; // Will increment as we view histories
+    // 4. Movements count (total real, derivado do histórico de cada produto)
+    elements.kpiTotalMovements.textContent = state.totalMovements;
 }
 
 function renderCategoryFilter() {
@@ -468,6 +469,7 @@ function renderChart(movements, minStock) {
 async function reloadData() {
     await fetchProducts();
     await fetchCategories();
+    await fetchTotalMovements();
     renderCategoryFilter();
     renderProducts();
     updateKPIs();
