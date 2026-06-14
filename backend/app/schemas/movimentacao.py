@@ -1,12 +1,12 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from app.domain.estoque import TipoMovimentacao
 
 
 # Create -> o que o usuário manda para registrar uma movimentação
 class MovimentacaoCreate(BaseModel):
     tipo: TipoMovimentacao
-    quantidade: int
+    quantidade: int = Field(..., gt=0)
 
 
 # Read -> o que a API retorna
@@ -17,5 +17,4 @@ class MovimentacaoResponse(BaseModel):
     quantidade: int
     data: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

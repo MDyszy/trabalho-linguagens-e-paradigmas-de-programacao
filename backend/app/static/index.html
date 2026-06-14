@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataStock — Controle de Estoque (LPP)</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for beautiful charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Header Area -->
+        <header class="header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div>
+                    <h1>DataStock</h1>
+                    <p class="subtitle">Paradigma Orientado a Dados (LPP)</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="btn-seed" class="btn btn-secondary">
+                    <i class="fa-solid fa-database"></i> Popular Banco (Seed)
+                </button>
+                <a href="/produtos/exportar/inventario" class="btn btn-success" id="btn-export-all">
+                    <i class="fa-solid fa-file-csv"></i> Exportar Inventário
+                </a>
+            </div>
+        </header>
+
+        <!-- KPI Metrics Grid -->
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Total de Produtos</span>
+                    <span id="metric-total-products" class="metric-value">0</span>
+                </div>
+                <div class="metric-icon bg-indigo">
+                    <i class="fa-solid fa-box"></i>
+                </div>
+            </div>
+            
+            <div class="metric-card alert-glow" id="alert-kpi-card">
+                <div class="metric-info">
+                    <span class="metric-label">Produtos em Alerta</span>
+                    <span id="metric-alert-products" class="metric-value">0</span>
+                </div>
+                <div class="metric-icon bg-rose">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Categorias</span>
+                    <span id="metric-total-categories" class="metric-value">0</span>
+                </div>
+                <div class="metric-icon bg-emerald">
+                    <i class="fa-solid fa-tags"></i>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Histórico de Eventos</span>
+                    <span id="metric-total-movements" class="metric-value">0</span>
+                </div>
+                <div class="metric-icon bg-amber">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <main class="main-content">
+            <!-- Left Panel: Products List -->
+            <section class="panel products-panel">
+                <div class="panel-header">
+                    <div class="panel-title-area">
+                        <h2>Catálogo de Produtos</h2>
+                        <span class="badge" id="product-count-badge">0 itens</span>
+                    </div>
+                    <button id="btn-open-create-modal" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> Novo Produto
+                    </button>
+                </div>
+
+                <!-- Filters and Search -->
+                <div class="filter-bar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Buscar produtos pelo nome...">
+                    </div>
+                    
+                    <div class="filters-actions">
+                        <select id="category-filter" class="form-select">
+                            <option value="">Todas as Categorias</option>
+                        </select>
+                        
+                        <div class="filter-tabs">
+                            <button class="tab-btn active" data-filter="all">Todos</button>
+                            <button class="tab-btn" data-filter="alert">Alertas</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="products-list-grid" class="products-grid">
+                    <!-- Dynamic Product Cards here -->
+                    <div class="loading-state">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Carregando produtos...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: History / Chart -->
+            <section class="panel details-panel" id="details-panel">
+                <!-- Empty State -->
+                <div class="empty-state" id="details-empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <h3>Detalhes e Histórico</h3>
+                    <p>Selecione um produto para visualizar os gráficos de evolução de estoque e o histórico completo de movimentações imutáveis.</p>
+                </div>
+
+                <!-- Active Product Detail State (Hidden by default) -->
+                <div class="product-details-content hidden" id="details-active-state">
+                    <div class="active-product-header">
+                        <div class="active-product-title">
+                            <span id="active-product-category" class="category-badge">Categoria</span>
+                            <h3 id="active-product-name">Nome do Produto</h3>
+                        </div>
+                        <div class="active-product-actions">
+                            <button id="btn-active-movement" class="btn btn-sm btn-primary">
+                                <i class="fa-solid fa-right-left"></i> Movimentar
+                            </button>
+                            <a href="#" id="btn-active-export" class="btn btn-sm btn-secondary">
+                                <i class="fa-solid fa-download"></i> CSV
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Visual Inventory Indicators -->
+                    <div class="status-summary">
+                        <div class="status-box">
+                            <span class="status-title">Saldo Atual</span>
+                            <span id="active-product-stock" class="status-val text-emerald">0</span>
+                        </div>
+                        <div class="status-box">
+                            <span class="status-title">Mínimo Requerido</span>
+                            <span id="active-product-min" class="status-val text-indigo">0</span>
+                        </div>
+                        <div class="status-box">
+                            <span class="status-title">Situação</span>
+                            <span id="active-product-status-badge" class="status-badge-val badge">Normal</span>
+                        </div>
+                    </div>
+
+                    <!-- Stock Evolution Chart -->
+                    <div class="chart-container">
+                        <h4>Evolução Temporal do Estoque</h4>
+                        <canvas id="stockEvolutionChart"></canvas>
+                    </div>
+
+                    <!-- Audit Log (History of Movements) -->
+                    <div class="audit-log-section">
+                        <h4>Log de Eventos (Append-Only)</h4>
+                        <div class="table-container">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Operação</th>
+                                        <th>Quantidade</th>
+                                        <th>Saldo Resultante</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-log-tbody">
+                                    <!-- Dynamic rows here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: CREATE PRODUCT -->
+    <div class="modal-backdrop hidden" id="modal-create-product">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Cadastrar Novo Produto</h3>
+                <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-create-product">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="prod-name">Nome do Produto *</label>
+                        <input type="text" id="prod-name" required placeholder="Ex: Arroz Integral 5kg">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="prod-category">Categoria *</label>
+                        <input type="text" id="prod-category" required placeholder="Ex: Alimentos" list="categories-datalist">
+                        <datalist id="categories-datalist"></datalist>
+                        <small class="form-help">Se a categoria não existir, será criada automaticamente.</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="prod-qty">Quantidade Inicial</label>
+                            <input type="number" id="prod-qty" min="0" value="0" placeholder="Ex: 10">
+                            <small class="form-help">Vira a primeira entrada (se maior que zero).</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="prod-min">Estoque Mínimo *</label>
+                            <input type="number" id="prod-min" min="1" required placeholder="Ex: 5">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prod-image">URL da Imagem</label>
+                        <input type="url" id="prod-image" placeholder="Ex: https://imagens.com/produto.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: RECORD MOVEMENT -->
+    <div class="modal-backdrop hidden" id="modal-record-movement">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Registrar Movimentação</h3>
+                <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-record-movement">
+                <input type="hidden" id="mov-product-id">
+                <div class="modal-body">
+                    <div class="movement-product-info">
+                        <span class="info-label">Produto:</span>
+                        <span id="mov-product-name" class="info-value">Nome do Produto</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo de Movimentação *</label>
+                        <div class="radio-toggle-group">
+                            <input type="radio" id="type-entrada" name="mov-type" value="entrada" checked>
+                            <label for="type-entrada" class="radio-label entry-label">
+                                <i class="fa-solid fa-circle-arrow-up"></i> Entrada (Soma)
+                            </label>
+                            
+                            <input type="radio" id="type-saida" name="mov-type" value="saida">
+                            <label for="type-saida" class="radio-label exit-label">
+                                <i class="fa-solid fa-circle-arrow-down"></i> Saída (Subtrai)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mov-qty">Quantidade *</label>
+                        <input type="number" id="mov-qty" min="1" required placeholder="Quantidade de itens">
+                        <span id="mov-validation-error" class="error-text hidden"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-cancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar Evento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Alerts Notification -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
